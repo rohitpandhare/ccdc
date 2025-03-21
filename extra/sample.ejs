@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DoctorSync</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-50 min-h-screen flex flex-col justify-between">
+    <nav class="bg-white shadow-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <a href="/" class="text-2xl font-bold text-blue-600 tracking-tight">DoctorSync</a>
+                <ul class="flex space-x-6">
+                    <li><a href="/pres" class="text-gray-600 hover:text-blue-600 transition-colors duration-200 font-medium">View Prescription</a></li>
+                    <li><a href="/login" class="text-gray-600 hover:text-blue-600 transition-colors duration-200 font-medium">Login</a></li>
+                    <li><a href="/signup" class="text-gray-600 hover:text-blue-600 transition-colors duration-200 font-medium">Register</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div class="text-center mb-8">
+            <h2 class="text-4xl font-bold text-gray-900 mb-4 tracking-tight">Welcome to DoctorSync</h2>
+            <h4 class="text-2xl text-blue-600 mb-8 font-semibold">Sync Your Health</h4>
+            <p class="text-gray-600 text-lg max-w-3xl mx-auto leading-relaxed">
+                Revolutionize your healthcare experience with our integrated platform. Connect with medical professionals, 
+                manage prescriptions, and Appointments in one secure place.
+            </p>
+        </div>
+
+        <div>
+            <h3 class="text-3xl font-bold text-gray-900 mb-8 text-center">Why Choose DoctorSync?</h3>
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div class="bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-200">
+                    <h4 class="text-xl font-semibold mb-3 text-blue-600">Prescription Management</h4>
+                    <p class="text-gray-600">Get Real Time Prescriptions from your doctor</p>
+                </div>
+
+                <div class="bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-200">
+                    <h4 class="text-xl font-semibold mb-3 text-blue-600">Appointment Management</h4>
+                    <p class="text-gray-600">Get Appointment quickly</p>
+                </div>
+
+                <div class="bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-200">
+                    <h4 class="text-xl font-semibold mb-3 text-blue-600">Remote Prescription View</h4>
+                    <p class="text-gray-600">Get Generated Precriptions Just by its Prescription ID</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="bg-gray-800 text-white mt-auto">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div class="grid md:grid-cols-3 gap-8">
+                <div>
+                    <h6 class="font-semibold mb-4">Connect With Us</h6>
+                    <div class="flex space-x-4">
+                        <!-- Social media icons remain the same -->
+                        <a href="https://www.facebook.com" target="_blank" 
+                           class="p-2 bg-gray-700 rounded-full hover:bg-blue-600 transition-colors duration-200"
+                           aria-label="Facebook">
+                            <svg class="w-6 h-6 fill-current" viewBox="0 0 24 24">
+                                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                            </svg>
+                        </a>
+                        <!-- Rest of social media icons remain unchanged -->
+                    </div>
+                </div>
+            </div>
+            <div class="border-t border-gray-700 mt-4 pt-4 text-center text-gray-400">
+                <p>&copy; 2025 DoctorSync. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>

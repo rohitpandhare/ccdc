@@ -1,0 +1,4 @@
+aim 
+
+user can login, logout,signup and change password
+user can login as doctor and append prescription which can viewed by anyone
