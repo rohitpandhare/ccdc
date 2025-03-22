@@ -8,19 +8,16 @@ function grabHeaders(headerdata) {
 function sendResponse(res, message = "ok", data = {}, error = false, status = 200) {
     res.set('Access-Control-Allow-Credentials', true);
     try {
-        res.status(status)
-        res.json(
-            {
-                message: message,
-                data: data
-            }
-        );
+        res.status(status).json({
+            message: message,
+            data: data
+        });
     } catch (error) {
         res.json({
             message: error.message,
             data: data
         });
-    };
+    }
 }
 
 function getUserTypes(req, res) {
@@ -37,6 +34,7 @@ function getUserTypes(req, res) {
     });
 }
 
+// Modified createUser function with better validation
 function createUser(req, res) {
     const { Username, Email, Password, Role } = req.body;
 
@@ -56,42 +54,65 @@ function createUser(req, res) {
     }
 
     const hashedPassword = md5(Password);
-    const query = `
-        INSERT INTO user
-        (Username, Email, Password, Role) 
-        VALUES (?, ?, ?, ?)
-    `;
-    const values = [
-        Username,
-        Email,
-        hashedPassword,
-        normalizedUserType
-    ];
-
-    conPool.query(query, values, (err, result) => {
+    
+    // Two-step transaction for user creation
+    conPool.getConnection((err, connection) => {
         if (err) {
-            console.error('User Creation Error:', err);
-
-            if (err.code === 'ER_DUP_ENTRY') {
-                return res.status(400).render('signup', {
-                    error: "Username or email already exists"
-                });
-            }
-
             return res.status(500).render('signup', {
-                error: "Error creating user: " + err.message
+                error: "Database connection error"
             });
         }
 
-        console.log('User Created Successfully:', {
-            username: Username,
-            userType: normalizedUserType
-        });
+        connection.beginTransaction(err => {
+            if (err) {
+                connection.release();
+                return res.status(500).render('signup', {
+                    error: "Transaction error"
+                });
+            }
 
-        res.redirect('/login?error=invalid_credentials');
+            const query = `
+                INSERT INTO user
+                (Username, Email, Password, Role) 
+                VALUES (?, ?, ?, ?)
+            `;
+            
+            connection.query(query, [Username, Email, hashedPassword, normalizedUserType], (err, result) => {
+                if (err) {
+                    connection.rollback(() => {
+                        connection.release();
+                        if (err.code === 'ER_DUP_ENTRY') {
+                            return res.status(400).render('signup', {
+                                error: "Username or email already exists"
+                            });
+                        }
+                        return res.status(500).render('signup', {
+                            error: "Error creating user: " + err.message
+                        });
+                    });
+                    return;
+                }
+
+                connection.commit(err => {
+                    if (err) {
+                        connection.rollback(() => {
+                            connection.release();
+                            return res.status(500).render('signup', {
+                                error: "Error finalizing user creation"
+                            });
+                        });
+                        return;
+                    }
+                    
+                    connection.release();
+                    res.redirect('/login');
+                });
+            });
+        });
     });
 }
 
+// Modified doLogin function with better session handling
 function doLogin(req, res) {
     const { Username, Password, Role } = req.body;
     const hashedPassword = md5(Password);
@@ -114,6 +135,10 @@ function doLogin(req, res) {
         const user = results[0];
         req.session.loggedIn = true;
         req.session.user = user;
+        req.session.lastActivity = Date.now();
+
+        // Update last login timestamp
+        conPool.query('UPDATE user SET LastLogin = CURRENT_TIMESTAMP WHERE UserID = ?', [user.UserID]);
 
         switch (user.Role.toLowerCase()) {
             case 'admin':
@@ -131,9 +156,9 @@ function doLogin(req, res) {
     });
 }
 
+// Keep original getUserProfile and updateUserProfile functions
 function getUserProfile(req, res) {
     const userId = req.params.UserID;
-
     const query = 'SELECT UserID, Username, Email FROM users WHERE UserID = ?';
 
     conPool.query(query, [userId], (err, results) => {
@@ -152,7 +177,6 @@ function getUserProfile(req, res) {
 
 function updateUserProfile(req, res) {
     const { UserID, Username, Email } = req.body;
-
     const query = 'UPDATE user SET Username = ?, Email = ? WHERE UserID = ?';
 
     conPool.query(query, [Username, Email, UserID], (err, result) => {
@@ -169,6 +193,23 @@ function updateUserProfile(req, res) {
     });
 }
 
+
+// Add this to your existing auth.js
+const checkAuth = (req, res, next) => {
+    if (req.session && req.session.loggedIn) {
+        next();
+    } else {
+        // Set as guest user
+        req.session.role = 'GUEST';
+        next();
+    }
+};
+
+const isGuest = (req) => {
+    return !req.session.loggedIn;
+};
+
+
 module.exports = {
     grabHeaders,
     sendResponse,
@@ -176,5 +217,7 @@ module.exports = {
     createUser,
     doLogin,
     getUserProfile,
-    updateUserProfile
+    updateUserProfile,
+    checkAuth,
+    isGuest
 };
