@@ -15,7 +15,7 @@ const adminController = {
         }
     },
         // Get all users
-        getAllUsers: async (req, res) => {
+    getAllUsers: async (req, res) => {
             try {
                 const [users] = await conPool.promise().query('SELECT * FROM user');
                 res.json({ success: true, data: users });
@@ -25,7 +25,7 @@ const adminController = {
         },
     
         // Get system statistics
-        getStats: async (req, res) => {
+    getStats: async (req, res) => {
             try {
                 const [stats] = await conPool.promise().query(`
                     SELECT 
@@ -37,7 +37,7 @@ const adminController = {
                 res.status(500).json({ success: false, error: err.message });
             }
         },
-        getSystemStats: async() =>{
+    getSystemStats: async() =>{
             try {
                 // Get user statistics
                 const [userStats] = await conPool.promise().query(

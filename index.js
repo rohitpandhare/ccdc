@@ -1,10 +1,11 @@
 const express = require('express');
 const session = require('express-session');
 const mysql = require('mysql2');
+
 const path = require('path');
 const cors = require('cors');
 
-// Initialize the Express app
+// Initializing the Express app
 const app = express();
 const port = 3000;
 
@@ -108,7 +109,6 @@ app.post('/pres', async (req, res) => {
   }
 });
 
-
 app.get('/reset', (req, res) => {
   res.render('auth/reset_pass');
 });
@@ -172,7 +172,6 @@ app.get('/admin', checkRole(['admin']), async (req, res) => {
       });
   }
 });
-
 
 // Add delete routes
 app.post('/admin/delete-user/:id', checkRole(['admin']), async (req, res) => {
@@ -310,8 +309,6 @@ app.get('/doctors/search', async (req, res) => {
       });
   }
 });
-
-
 
 // Error handling middleware
 app.use((err, req, res, next) => {
