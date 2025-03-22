@@ -128,5 +128,137 @@ router.post('/reset_pass', async (req, res) => {
     }
 });
 
+router.get('/doctors/search', (req, res) => {
+    const { specialty } = req.query;
+    const wantsJson = req.headers.accept && req.headers.accept.includes('application/json');
+    
+    if (!specialty) {
+        return wantsJson 
+            ? res.status(400).json({
+                success: false,
+                error: 'Specialty parameter is required'
+              })
+            : res.render('error', { 
+                message: 'Specialty parameter is required' 
+              });
+    }
+
+    const query = `
+        SELECT Name, Specialty, Phone
+        FROM DOCTOR 
+        WHERE Specialty LIKE ?`;
+
+    conPool.query(query, [`%${specialty}%`], (err, results) => {
+        if (err) {
+            console.error('Database error:', err);
+            return wantsJson
+                ? res.status(500).json({
+                    success: false,
+                    error: 'Database error'
+                  })
+                : res.render('error', { 
+                    message: 'Database error' 
+                  });
+        }
+
+        // Get the logged-in user's data
+        const defaultUser = {
+            Username: 'Guest',
+            Role: 'viewer'
+        };
+
+        // Use session user if available, otherwise use default
+        const user = req.session.user || defaultUser;
+
+        return wantsJson
+            ? res.json({
+                success: true,
+                data: results
+              })
+            : res.render('doctor', { 
+                doctors: results,
+                user: user,
+                // Add these mock statistics
+                stats: {
+                    totalPatients: 42,
+                    upcomingAppointments: 8,
+                    prescriptions: 15
+                },
+                // Add mock recent appointments
+                recentAppointments: [
+                    {
+                        patient: "John Doe",
+                        date: "2024-03-20",
+                        status: "Completed"
+                    },
+                    {
+                        patient: "Jane Smith",
+                        date: "2024-03-21",
+                        status: "Pending"
+                    }
+                ]
+              });
+    });
+});
+
+
+//testing
+// Add this route BEFORE your other routes in auth.js
+router.get('/test', (req, res) => {
+    console.log('Test route hit'); // Debug log
+    
+    // Execute a simple database query to test connection
+    const query = 'SELECT 1 as test';
+    
+    conPool.query(query, (err, results) => {
+        if (err) {
+            console.error('Database error:', err);
+            return res.status(500).json({
+                success: false,
+                error: 'Database connection failed'
+            });
+        }
+        
+        // Send success response
+        res.json({
+            success: true,
+            message: 'Test route working!',
+            dbConnection: 'successful',
+            timestamp: new Date()
+        });
+    });
+});
+
+// Add a more comprehensive test route
+router.get('/test/doctors', (req, res) => {
+    const query = `
+        SELECT COUNT(*) as doctorCount 
+        FROM DOCTOR`;
+    
+    conPool.query(query, (err, results) => {
+        if (err) {
+            return res.status(500).json({
+                success: false,
+                error: 'Failed to count doctors'
+            });
+        }
+        
+        res.json({
+            success: true,
+            message: 'Doctor count successful',
+            count: results[0].doctorCount
+        });
+    });
+});
+
+// Test route with params
+router.get('/test/:param', (req, res) => {
+    res.json({
+        success: true,
+        message: 'Parameter test route working!',
+        parameter: req.params.param
+    });
+});
+
 
 module.exports = router;

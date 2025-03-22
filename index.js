@@ -162,6 +162,16 @@ app.use((err, req, res, next) => {
   res.status(500).send('Internal Server Error');
 });
 
+
+// Add basic error handling
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({
+      success: false,
+      error: 'Something went wrong!'
+  });
+});
+
 // Starting the server
 app.listen(port, () => {
   console.log(`The server is running on http://localhost:${port}`);

@@ -42,27 +42,60 @@
         <header class="flex justify-between items-center mb-10">
             <h1 class="text-3xl font-bold text-gray-800">Dashboard</h1>
             <div class="flex items-center">
-                <span class="mr-4 text-gray-600">Dr. <%= user.Username %></span>
+                <span class="mr-4 text-gray-600">
+                    Dr. <%= user ? user.Username : 'Guest' %>
+                </span>
                 <a href="/auth/logout" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
                     Logout
                 </a>
             </div>
         </header>
 
-        <div class="grid grid-cols-3 gap-6">
-            <div class="bg-white p-6 rounded-lg shadow">
-                <h3 class="text-xl font-semibold mb-4">Total Patients</h3>
-                <p class="text-3xl font-bold text-blue-600">42</p>
-            </div>
-            <div class="bg-white p-6 rounded-lg shadow">
-                <h3 class="text-xl font-semibold mb-4">Upcoming Appointments</h3>
-                <p class="text-3xl font-bold text-green-600">8</p>
-            </div>
-            <div class="bg-white p-6 rounded-lg shadow">
-                <h3 class="text-xl font-semibold mb-4">Prescriptions</h3>
-                <p class="text-3xl font-bold text-yellow-600">15</p>
-            </div>
-        </div>
+       //
+      
+<!-- Update the statistics section to use the passed stats -->
+<div class="grid grid-cols-3 gap-6">
+    <div class="bg-white p-6 rounded-lg shadow">
+        <h3 class="text-xl font-semibold mb-4">Total Patients</h3>
+        <p class="text-3xl font-bold text-blue-600"><%= stats.totalPatients %></p>
+    </div>
+    <div class="bg-white p-6 rounded-lg shadow">
+        <h3 class="text-xl font-semibold mb-4">Upcoming Appointments</h3>
+        <p class="text-3xl font-bold text-green-600"><%= stats.upcomingAppointments %></p>
+    </div>
+    <div class="bg-white p-6 rounded-lg shadow">
+        <h3 class="text-xl font-semibold mb-4">Prescriptions</h3>
+        <p class="text-3xl font-bold text-yellow-600"><%= stats.prescriptions %></p>
+    </div>
+</div>
+
+<!-- Update the appointments table to use the passed data -->
+<div class="mt-10 bg-white p-6 rounded-lg shadow">
+    <h3 class="text-xl font-semibold mb-4">Recent Appointments</h3>
+    <table class="w-full text-left">
+        <thead>
+            <tr class="bg-gray-100">
+                <th class="p-3">Patient</th>
+                <th class="p-3">Date</th>
+                <th class="p-3">Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            <% recentAppointments.forEach(function(appointment) { %>
+                <tr class="border-b">
+                    <td class="p-3"><%= appointment.patient %></td>
+                    <td class="p-3"><%= appointment.date %></td>
+                    <td class="p-3">
+                        <span class="bg-green-100 text-green-800 px-3 py-1 rounded-full">
+                            <%= appointment.status %>
+                        </span>
+                    </td>
+                </tr>
+            <% }); %>
+        </tbody>
+    </table>
+</div>
+
 
         <!-- Recent Appointments -->
         <div class="mt-10 bg-white p-6 rounded-lg shadow">
@@ -87,6 +120,22 @@
                 </tbody>
             </table>
         </div>
+
+        <% if (doctors && doctors.length > 0) { %>
+            <div class="doctors-list">
+                <% doctors.forEach(function(doctor) { %>
+                    <div class="doctor-card">
+                        <div class="doctor-name"><%= doctor.Name %></div>
+                        <div class="doctor-specialty">Specialty: <%= doctor.Specialty %></div>
+                        <% if (doctor.Phone) { %>
+                            <div class="doctor-phone">Phone: <%= doctor.Phone %></div>
+                        <% } %>
+                    </div>
+                <% }); %>
+            </div>
+        <% } else { %>
+            <p>No doctors found matching your search criteria.</p>
+        <% } %>
     </div>
 
     <script>
