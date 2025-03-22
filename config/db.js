@@ -11,6 +11,11 @@ const conPool = myDB.createPool({
     queueLimit: 0
 });
 
+
+conPool.on('error', (err) => {
+    console.error('Database pool error:', err);
+});
+
 module.exports = {
     conPool
 };
