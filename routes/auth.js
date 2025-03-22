@@ -5,6 +5,19 @@ const md5 = require('md5');
 // Import the connection pool from db.js
 const { conPool } = require('../config/db');
 
+const { 
+    createUser, 
+    doLogin, 
+    getUserProfile, 
+    updateUserProfile 
+} = require('../controllers/auth');
+
+// Update route handlers to use the imported controller functions
+router.post('/signup', createUser);
+router.post('/login', doLogin);
+router.get('/profile/:UserID', getUserProfile);
+router.put('/profile/update', updateUserProfile);
+
 // Signup Route
 router.post('/signup', async (req, res) => {
     const { Username, Email, Password, Role } = req.body;
@@ -31,13 +44,14 @@ router.post('/signup', async (req, res) => {
 router.post('/login', async (req, res) => {
     const { Username, Password, Role } = req.body;
     console.log('Login request body:', req.body);
-    // Validate input
+
     if (!Username || !Password || !Role) {
         return res.status(400).json({
             success: false,
             message: 'Please provide Username, Password and Role'
         });
     }
+
     try {
         const hashedPassword = md5(Password);
         const [users] = await conPool.promise().query(
@@ -48,19 +62,17 @@ router.post('/login', async (req, res) => {
         if (users.length === 0) {
             return res.status(401).render('login', {
                 error: 'Invalid credentials',
-                attemptedData: { // Helps identify mismatches
+                attemptedData: {
                   username: req.body.Username || '',
                   role: req.body.Role || ''
                 }
-              });
-              
+            });
         }
         
         const user = users[0];
         req.session.loggedIn = true;
         req.session.user = user;
         
-        // Redirect based on role
         const roleRoutes = {
             admin: '/admin',
             doctor: '/doctor',
@@ -76,6 +88,51 @@ router.post('/login', async (req, res) => {
     }
 });
 
+// Doctor Statistics Route
+router.get('/doctor-stats', async (req, res) => {
+    if (!req.session.user || req.session.user.Role !== 'doctor') {
+        return res.status(403).json({ error: 'Access denied' });
+    }
+
+    try {
+        // Get total patients count
+        const [patientCount] = await conPool.promise().query(
+            'SELECT COUNT(*) as count FROM user WHERE Role = "patient"'
+        );
+
+        // Get upcoming appointments
+        const [appointmentCount] = await conPool.promise().query(
+            'SELECT COUNT(*) as count FROM appointments WHERE doctor_id = ? AND appointment_date > NOW()',
+            [req.session.user.UserID]
+        );
+
+        // Get recent appointments
+        const [recentAppointments] = await conPool.promise().query(
+            'SELECT * FROM appointments WHERE doctor_id = ? ORDER BY appointment_date DESC LIMIT 5',
+            [req.session.user.UserID]
+        );
+
+        const stats = {
+            totalPatients: patientCount[0].count || 0,
+            upcomingAppointments: appointmentCount[0].count || 0,
+            recentAppointments: recentAppointments || []
+        };
+
+        res.json({ success: true, stats });
+    } catch (err) {
+        console.error('Error fetching doctor statistics:', err);
+        res.status(500).json({ 
+            success: false, 
+            error: 'Failed to fetch statistics',
+            stats: {
+                totalPatients: 0,
+                upcomingAppointments: 0,
+                recentAppointments: []
+            }
+        });
+    }
+});
+
 // Logout Route
 router.get('/logout', (req, res) => {
     req.session.destroy((err) => {
@@ -86,11 +143,11 @@ router.get('/logout', (req, res) => {
     });
 });
 
+// Reset Password Route
 router.post('/reset_pass', async (req, res) => {
     const { Username, newPassword, confirmPassword } = req.body;
     
     try {
-        // Verify user exists
         const [users] = await conPool.promise().query(
             'SELECT * FROM user WHERE Username = ?',
             [Username]
@@ -108,16 +165,13 @@ router.post('/reset_pass', async (req, res) => {
             });
         }
 
-        //new password hashed
         const hashedPassword = md5(newPassword);
 
-        // Update the password
         await conPool.promise().query(
             'UPDATE user SET Password = ? WHERE Username = ?',
             [hashedPassword, Username]
         );
 
-        // Redirect to login with success message
         res.redirect('/login');
 
     } catch (err) {
@@ -128,6 +182,7 @@ router.post('/reset_pass', async (req, res) => {
     }
 });
 
+// Doctor Search Route
 router.get('/doctors/search', (req, res) => {
     const { specialty } = req.query;
     const wantsJson = req.headers.accept && req.headers.accept.includes('application/json');
@@ -161,13 +216,11 @@ router.get('/doctors/search', (req, res) => {
                   });
         }
 
-        // Get the logged-in user's data
         const defaultUser = {
             Username: 'Guest',
             Role: 'viewer'
         };
 
-        // Use session user if available, otherwise use default
         const user = req.session.user || defaultUser;
 
         return wantsJson
@@ -178,13 +231,11 @@ router.get('/doctors/search', (req, res) => {
             : res.render('doctor', { 
                 doctors: results,
                 user: user,
-                // Add these mock statistics
                 stats: {
                     totalPatients: 42,
                     upcomingAppointments: 8,
                     prescriptions: 15
                 },
-                // Add mock recent appointments
                 recentAppointments: [
                     {
                         patient: "John Doe",
@@ -201,13 +252,10 @@ router.get('/doctors/search', (req, res) => {
     });
 });
 
-
-//testing
-// Add this route BEFORE your other routes in auth.js
+// Test Routes
 router.get('/test', (req, res) => {
-    console.log('Test route hit'); // Debug log
+    console.log('Test route hit');
     
-    // Execute a simple database query to test connection
     const query = 'SELECT 1 as test';
     
     conPool.query(query, (err, results) => {
@@ -219,7 +267,6 @@ router.get('/test', (req, res) => {
             });
         }
         
-        // Send success response
         res.json({
             success: true,
             message: 'Test route working!',
@@ -229,7 +276,6 @@ router.get('/test', (req, res) => {
     });
 });
 
-// Add a more comprehensive test route
 router.get('/test/doctors', (req, res) => {
     const query = `
         SELECT COUNT(*) as doctorCount 
@@ -251,7 +297,6 @@ router.get('/test/doctors', (req, res) => {
     });
 });
 
-// Test route with params
 router.get('/test/:param', (req, res) => {
     res.json({
         success: true,
@@ -259,6 +304,5 @@ router.get('/test/:param', (req, res) => {
         parameter: req.params.param
     });
 });
-
 
 module.exports = router;

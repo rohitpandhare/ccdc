@@ -1,7 +1,6 @@
 const express = require('express');
 const session = require('express-session');
 const mysql = require('mysql2');
-
 const path = require('path');
 const cors = require('cors');
 
@@ -20,11 +19,12 @@ const conPool = mysql.createPool({
 });
 
 // Middleware to handle request parsing
-app.use(express.json()); // Parse incoming JSON requests
-app.use(express.urlencoded({ extended: true })); // Parse URL-encoded payloads
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-app.use(express.static(path.join(__dirname, 'views'))); // Serve static files
-app.set("view engine", "ejs"); // Use EJS for rendering views
+// Set views and static files
+app.use(express.static(path.join(__dirname, 'views')));
+app.set("view engine", "ejs");
 
 // CORS configuration
 var corsOptions = {
@@ -34,54 +34,45 @@ var corsOptions = {
   optionsSuccessStatus: 200
 };
 
-app.use(cors(corsOptions)); // Enable CORS for specified origins
+app.use(cors(corsOptions));
 
-// Middleware for session management
+// Session middleware
 app.use(
   session({
-    secret: 'rohitiscool', // Secret key for signing the session ID cookie
-    resave: false, // Do not resave sessions if unmodified
-    saveUninitialized: false, // Do not save uninitialized sessions
+    secret: 'rohitiscool',
+    resave: false,
+    saveUninitialized: false,
     cookie: {
-      secure: false, // Set to `true` if using HTTPS
-      maxAge: 1000 * 60 * 60 * 24 // 24 hour session expiry
+      secure: false,
+      maxAge: 1000 * 60 * 60 * 24
     },
   })
 );
 
-// Middleware to check login status
-const chkLogin = (req, res, next) => {
-  if (req.session.loggedIn) {
-    next(); // Proceed if logged in
-  } else {
-    req.session.ogPath = req.path; // Store original path for redirection
-    res.redirect("/login"); // Redirect to login page
-  }
-};
-
-// Importing routes
+// Import middleware and routes
+const { chkLogin } = require('./middleware/auth');
 const authlinks = require('./routes/auth'); 
-app.use('/auth', authlinks); // Mount authentication routes
+app.use('/auth', authlinks);
 
-// Application Routes
+// Application Routes with correct paths
 app.get('/', (req, res) => {
-  res.render('index'); // Render the home page (index.ejs)
+  res.render('layouts/index');
 });
 
 app.get('/login', (req, res) => {
-  res.render('login'); // Render the login page (logged.ejs)
+  res.render('auth/login');
 });
 
 app.get('/signup', (req, res) => {
-  res.render('signup'); 
+  res.render('auth/signup'); 
 });
 
 app.get('/pres', (req, res) => {
-  res.render('pres'); // Render the prescription page (pres.ejs)
+  res.render('dataRelated/pres');
 });
 
 app.get('/reset', (req, res) => {
-  res.render('reset_pass'); // Render the password reset page (reset_pass.ejs)
+  res.render('auth/reset_pass');
 });
 
 // Logout Route
@@ -94,81 +85,98 @@ app.get('/auth/logout', (req, res) => {
   });
 });
 
-// Dashboard route with authentication middleware
-app.get('/dashboard', (req, res) => {
-  if (req.session.loggedIn) {
-      res.render('dashboard', { user: req.session.user });
-  } else {
-      res.redirect('/login');
-  }
-});
-
-// Improved role check middleware
+// Role check middleware
 const checkRole = (roles = []) => {
   return (req, res, next) => {
-      if (!req.session.loggedIn) {
-          return res.redirect('/login');
-      }
-      
-      if (!roles.includes(req.session.user.Role.toLowerCase())) {
-          return res.status(403).render('error', {
-              message: 'Access Denied'
-          });
-      }
-      
-      next();
+    if (!req.session.loggedIn) {
+      return res.redirect('/login');
+    }
+    
+    if (!roles.includes(req.session.user.Role.toLowerCase())) {
+      return res.status(403).render('checks/error', {
+        message: 'Access Denied'
+      });
+    }
+    
+    next();
   };
 };
 
 // Protected routes with improved role checking
-// app.get('/admin', checkRole(['admin']), (req, res) => {
-//   res.render('admin', { user: req.session.user });
-// });
-
-// In index.js - Update the admin route
 app.get('/admin', checkRole(['admin']), async (req, res) => {
   try {
-      // Fetch all users from database
-      const [userList] = await conPool.promise().query(
-          'SELECT Username, Email, Role, CreatedAt FROM user'
-      );
-      
-      // Render admin page with both user session data and user list
-      res.render('admin', { 
-          user: req.session.user,  // Keeps the original admin login working
-          userList: userList       // Adds the user list display
+    const [userList] = await conPool.promise().query(
+      'SELECT Username, Email, Role, CreatedAt FROM user'
+    );
+    
+    res.render('users/admin', { 
+      user: req.session.user,
+      userList: userList
+    });
+  } catch (err) {
+    console.error('Error fetching users:', err);
+    res.render('users/admin', { 
+      user: req.session.user,
+      userList: []
+    });
+  }
+});
+
+// In index.js
+app.get('/doctor', checkRole(['doctor']), async (req, res) => {
+  try {
+      // Default stats object
+      const stats = {
+          totalPatients: 0,
+          upcomingAppointments: 0,
+          recentAppointments: []
+      };
+
+      // Only query if user is logged in and is a doctor
+      if (req.session.user && req.session.user.Role === 'doctor') {
+          // Get total patients count
+          const [patientCount] = await conPool.promise().query(
+              'SELECT COUNT(*) as count FROM user WHERE Role = "patient"'
+          );
+
+          // Get upcoming appointments
+          const [appointmentCount] = await conPool.promise().query(
+              'SELECT COUNT(*) as count FROM appointments WHERE doctor_id = ? AND appointment_date > NOW()',
+              [req.session.user.UserID]
+          );
+
+          // Update stats with actual data
+          stats.totalPatients = patientCount[0].count;
+          stats.upcomingAppointments = appointmentCount[0].count;
+      }
+
+      res.render('users/doctor', {
+          user: req.session.user,
+          stats: stats
       });
   } catch (err) {
-      console.error('Error fetching users:', err);
-      // If database query fails, still render admin page with session data
-      res.render('admin', { 
-          user: req.session.user,  // Maintains admin login functionality
-          userList: []             // Empty array if query fails
+      console.error('Error loading doctor dashboard:', err);
+      res.render('users/doctor', {
+          user: req.session.user,
+          stats: {
+              totalPatients: 0,
+              upcomingAppointments: 0,
+              recentAppointments: []
+          }
       });
   }
 });
 
-app.get('/doctor', checkRole(['doctor']), (req, res) => {
-  res.render('doctor', { user: req.session.user });
-});
 
 app.get('/patient', checkRole(['patient']), (req, res) => {
-  res.render('patient', { user: req.session.user });
+  res.render('users/patient', { user: req.session.user });
 });
 
-// Detailed error handling middleware
+// Error handling middleware
 app.use((err, req, res, next) => {
   console.error('Unhandled Error:', err);
-  res.status(500).send('Internal Server Error');
-});
-
-
-// Add basic error handling
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({
-      success: false,
-      error: 'Something went wrong!'
+  res.render('checks/error', {
+    message: 'Internal Server Error'
   });
 });
 
@@ -176,12 +184,3 @@ app.use((err, req, res, next) => {
 app.listen(port, () => {
   console.log(`The server is running on http://localhost:${port}`);
 });
-
-// // Enhanced database connection logging
-// conPool.on('connection', (connection) => {
-//   console.log('New MySQL Connection Established');
-  
-//   connection.on('error', (err) => {
-//     console.error('MySQL Connection Error:', err);
-//   });
-// });
