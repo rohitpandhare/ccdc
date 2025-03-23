@@ -18,6 +18,40 @@
 
             <!-- Login Form -->
             <form action="/auth/login" method="post" class="space-y-6">
+                <!-- Role section with Patient as default -->
+                <div class="space-y-2">
+                    <label class="block text-sm font-medium text-gray-700">User Type</label>
+                    <div class="relative">
+                        <select name="Role" 
+                                id="role" 
+                                onchange="toggleAdminCode()"
+                                required 
+                                class="w-full pl-12 pr-4 py-3 appearance-none border border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 bg-white">
+                            <option value="PATIENT" selected>Patient</option>
+                            <option value="DOCTOR">Doctor</option>
+                            <option value="ADMIN">Admin</option>
+                        </select>
+                        <svg class="absolute left-4 top-3.5 w-5 h-5 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </div>
+
+                    <!-- Admin code section -->
+                    <div id="adminCodeSection" class="hidden mt-4">
+                        <label class="block text-sm font-medium text-gray-700">Admin Code</label>
+                        <div class="relative">
+                            <input type="password" 
+                                name="adminCode" 
+                                id="adminCode" 
+                                class="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 placeholder-gray-400"
+                                placeholder="Enter admin verification code">
+                            <svg class="absolute left-4 top-3.5 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="space-y-2">
                     <label class="block text-sm font-medium text-gray-700">Username</label>
                     <div class="relative">
@@ -48,44 +82,6 @@
                     </div>
                 </div>
 
-                <div class="space-y-2">
-                    <label class="block text-sm font-medium text-gray-700">User Type</label>
-                    <div class="relative">
-                        <select name="Role" 
-                                id="role" 
-                                required 
-                                class="w-full pl-12 pr-4 py-3 appearance-none border border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 bg-white">
-                            <option value="">Select Role</option>
-                            <option value="ADMIN">Admin</option>
-                            <option value="DOCTOR">Doctor</option>
-                            <option value="PATIENT">Patient</option>
-                        </select>
-                        <svg class="absolute left-4 top-3.5 w-5 h-5 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                        </svg>
-                    </div>
-                    <div class="flex gap-4 pt-2">
-                        <div class="flex items-center gap-2 text-gray-500 text-sm">
-                            <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
-                            </svg>
-                            Admin
-                        </div>
-                        <div class="flex items-center gap-2 text-gray-500 text-sm">
-                            <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879M12 12L9.121 9.121m0 5.758L5 21m7-7l2.879-2.879M12 12l2.879-2.879M12 12L9.121 9.121"/>
-                            </svg>
-                            Doctor
-                        </div>
-                        <div class="flex items-center gap-2 text-gray-500 text-sm">
-                            <svg class="w-5 h-5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                            </svg>
-                            Patient
-                        </div>
-                    </div>
-                </div>
-
                 <button type="submit" 
                         class="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold py-4 rounded-xl transition-all shadow-md hover:shadow-lg">
                     Access Portal
@@ -109,5 +105,37 @@
             </div>
         </div>
     </div>
+
+    <script>
+        function toggleAdminCode() {
+            const roleSelect = document.getElementById('role');
+            const adminCodeSection = document.getElementById('adminCodeSection');
+            const adminCodeInput = document.getElementById('adminCode');
+            
+            if (roleSelect.value === 'ADMIN') {
+                adminCodeSection.classList.remove('hidden');
+                adminCodeInput.required = true;
+            } else {
+                adminCodeSection.classList.add('hidden');
+                adminCodeInput.required = false;
+                adminCodeInput.value = ''; // Clear the input when hidden
+            }
+        }
+
+        // Add form validation for admin code
+        document.querySelector('form').addEventListener('submit', function(e) {
+            const roleSelect = document.getElementById('role');
+            const adminCodeInput = document.getElementById('adminCode');
+
+            if (roleSelect.value === 'ADMIN') {
+                if (adminCodeInput.value !== '007') {
+                    e.preventDefault();
+                    alert('Invalid admin code');
+                    adminCodeInput.value = '';
+                    adminCodeInput.focus();
+                }
+            }
+        });
+    </script>
 </body>
 </html>
