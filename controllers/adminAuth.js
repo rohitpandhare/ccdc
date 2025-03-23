@@ -1,78 +1,73 @@
-const { sendResponse } = require('./auth');
-const { conPool } = require('../config/db');
+const { conPool } = require('../config/db'); // importing conpool for DB operations
 
-const adminController = {
-    getDashboardStats: async (req, res) => {
-        try {
-            const [stats] = await conPool.promise().query(`
-                SELECT 
-                    (SELECT COUNT(*) FROM user WHERE Role = 'patient') as patientCount,
-                    (SELECT COUNT(*) FROM user WHERE Role = 'doctor') as doctorCount
-            `);
-            sendResponse(res, "Stats retrieved", stats[0]);
-        } catch (err) {
-            sendResponse(res, "Error fetching stats", err.message, true, 500);
-        }
-    },
-        // Get all users
-    getAllUsers: async (req, res) => {
-            try {
-                const [users] = await conPool.promise().query('SELECT * FROM user');
-                res.json({ success: true, data: users });
-            } catch (err) {
-                res.status(500).json({ success: false, error: err.message });
-            }
-        },
-    
-        // Get system statistics
-    getStats: async (req, res) => {
-            try {
-                const [stats] = await conPool.promise().query(`
-                    SELECT 
-                        (SELECT COUNT(*) FROM user WHERE Role = 'PATIENT') as patientCount,
-                        (SELECT COUNT(*) FROM user WHERE Role = 'DOCTOR') as doctorCount
-                `);
-                res.json({ success: true, data: stats[0] });
-            } catch (err) {
-                res.status(500).json({ success: false, error: err.message });
-            }
-        },
-    getSystemStats: async() =>{
-            try {
-                // Get user statistics
-                const [userStats] = await conPool.promise().query(
-                    `SELECT Role, COUNT(*) as UserCount
-                     FROM USER
-                     GROUP BY Role`
-                );
-    
-                // Get recent activities
-                const [recentActivities] = await conPool.promise().query(
-                    `SELECT aa.*, u.Username
-                     FROM ADMIN_ACTIVITY aa
-                     JOIN USER u ON aa.AdminUserID = u.UserID
-                     ORDER BY aa.ActivityTimestamp DESC
-                     LIMIT 10`
-                );
-    
-                // Get system health metrics
-                const [systemHealth] = await conPool.promise().query(
-                    `SELECT 
-                        (SELECT COUNT(*) FROM USER) as TotalUsers,
-                        (SELECT COUNT(*) FROM PRESCRIPTION WHERE DateIssued = CURRENT_DATE) as TodayPrescriptions,
-                        (SELECT COUNT(*) FROM MEDICAL_RECORD WHERE RecordDate = CURRENT_DATE) as TodayRecords`
-                );
-    
-                return {
-                    userStats,
-                    recentActivities,
-                    systemHealth: systemHealth[0]
-                };
-            } catch (err) {
-                throw err;
-            }
-        }
+async function getAdminDashboard (req, res) {
+  try {
+      // Get the admin user details
+      const [adminDetails] = await conPool.promise().query(
+          'SELECT Username FROM user WHERE UserID = ?',
+          [req.session.user.UserID]
+      );
+      
+      // Fetch all required data in parallel
+      const [userList, doctorList, patientList] = await Promise.all([
+          conPool.promise().query('SELECT UserID, Username, Email, Role, CreatedAt FROM user'),
+          conPool.promise().query('SELECT DoctorID, Name, Specialty, Phone, LicenseNumber, Qualifications FROM doctor'),
+          conPool.promise().query('SELECT PatientID, Name, Address, Phone, DOB, BloodGroup FROM patient')
+      ]);
+      
+      res.render('users/admin', { 
+          user: adminDetails[0] || { Username: 'Admin' },  // Provide a default
+          userList: userList[0],
+          doctorList: doctorList[0],
+          patientList: patientList[0]
+      });
+  } catch (err) {
+      console.error('Error fetching data:', err);
+      res.render('users/admin', { 
+          user: { Username: 'Admin' },  // Provide a default
+          userList: [],
+          doctorList: [],
+          patientList: []
+      });
+  }
 };
 
-module.exports = adminController;
 
+// Add delete routes
+async function deleteUser (req, res){
+  try {
+      await conPool.promise().query('DELETE FROM user WHERE UserID = ?', [req.params.id]);
+      res.json({ success: true });
+  } catch (err) {
+      console.error('Error deleting user:', err);
+      res.status(500).json({ success: false });
+  }
+};
+
+async function deleteDoctor(req, res){
+  try {
+      await conPool.promise().query('DELETE FROM doctor WHERE DoctorID = ?', [req.params.id]);
+      res.json({ success: true });
+  } catch (err) {
+      console.error('Error deleting doctor:', err);
+      res.status(500).json({ success: false });
+  }
+};
+
+async function deletePatient (req, res){
+  try {
+      await conPool.promise().query('DELETE FROM patient WHERE PatientID = ?', [req.params.id]);
+      res.json({ success: true });
+  } catch (err) {
+      console.error('Error deleting patient:', err);
+      res.status(500).json({ success: false });
+  }
+};
+
+// exporting the functions to be used in other files
+module.exports = {
+  getAdminDashboard,
+  deleteUser,
+  deleteDoctor,
+  deletePatient
+};

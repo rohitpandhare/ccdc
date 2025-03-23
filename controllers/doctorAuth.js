@@ -1,66 +1,69 @@
-const { sendResponse } = require('./auth');
-const { conPool } = require('../config/db');
-
-const doctorController = {
-    getPatientList: async (req, res) => {
-        const doctorId = req.session.user.UserID;
-        try {
-            const [patients] = await conPool.promise().query(
-                'SELECT DISTINCT p.* FROM user p JOIN appointments a ON p.UserID = a.PatientID WHERE a.DoctorID = ?',
-                [doctorId]
-            );
-            sendResponse(res, "Patients retrieved", patients);
-        } catch (err) {
-            sendResponse(res, "Error fetching patients", err.message, true, 500);
-        }
-    },
-
-    getDashboardStats: async(doctorId) =>{
-        try {
-            // Get patient count
-            const [patientCount] = await conPool.promise().query(
-                `SELECT COUNT(DISTINCT dp.PatientID) as count 
-                 FROM DOCTOR_PATIENT dp 
-                 WHERE dp.DoctorID = ?`,
-                [doctorId]
-            );
-
-            // Get recent prescriptions
-            const [recentPrescriptions] = await conPool.promise().query(
-                `SELECT p.*, pat.Name as PatientName 
-                 FROM PRESCRIPTION p
-                 JOIN PATIENT pat ON p.PatientID = pat.PatientID
-                 WHERE p.DoctorID = ?
-                 ORDER BY p.DateIssued DESC LIMIT 5`,
-                [doctorId]
-            );
-
-            // Get patient demographics
-            const [demographics] = await conPool.promise().query(
-                `SELECT 
-                    CASE 
-                        WHEN TIMESTAMPDIFF(YEAR, p.DOB, CURDATE()) < 18 THEN 'Under 18'
-                        WHEN TIMESTAMPDIFF(YEAR, p.DOB, CURDATE()) BETWEEN 18 AND 30 THEN '18-30'
-                        WHEN TIMESTAMPDIFF(YEAR, p.DOB, CURDATE()) BETWEEN 31 AND 50 THEN '31-50'
-                        ELSE 'Over 50'
-                    END as AgeGroup,
-                    COUNT(*) as PatientCount
-                FROM PATIENT p
-                JOIN DOCTOR_PATIENT dp ON p.PatientID = dp.PatientID
-                WHERE dp.DoctorID = ?
-                GROUP BY AgeGroup`,
-                [doctorId]
-            );
-
-            return {
-                totalPatients: patientCount[0].count,
-                recentPrescriptions,
-                demographics
-            };
-        } catch (err) {
-            throw err;
-        }
+// Doctor Search Route
+router.get('/doctors/search', (req, res) => {
+    const { specialty } = req.query;
+    const wantsJson = req.headers.accept && req.headers.accept.includes('application/json');
+    
+    if (!specialty) {
+        return wantsJson 
+            ? res.status(400).json({
+                success: false,
+                error: 'Specialty parameter is required'
+              })
+            : res.render('error', { 
+                message: 'Specialty parameter is required' 
+              });
     }
-};
 
-module.exports = doctorController;
+    const query = `
+        SELECT Name, Specialty, Phone
+        FROM DOCTOR 
+        WHERE Specialty LIKE ?`;
+
+    conPool.query(query, [`%${specialty}%`], (err, results) => {
+        if (err) {
+            console.error('Database error:', err);
+            return wantsJson
+                ? res.status(500).json({
+                    success: false,
+                    error: 'Database error'
+                  })
+                : res.render('error', { 
+                    message: 'Database error' 
+                  });
+        }
+
+        const defaultUser = {
+            Username: 'Guest',
+            Role: 'viewer'
+        };
+
+        const user = req.session.user || defaultUser;
+
+        return wantsJson
+            ? res.json({
+                success: true,
+                data: results
+              })
+            : res.render('doctor', { 
+                doctors: results,
+                user: user,
+                stats: {
+                    totalPatients: 42,
+                    upcomingAppointments: 8,
+                    prescriptions: 15
+                },
+                recentAppointments: [
+                    {
+                        patient: "John Doe",
+                        date: "2024-03-20",
+                        status: "Completed"
+                    },
+                    {
+                        patient: "Jane Smith",
+                        date: "2024-03-21",
+                        status: "Pending"
+                    }
+                ]
+              });
+    });
+});
