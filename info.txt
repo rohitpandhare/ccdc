@@ -2,3 +2,50 @@ aim
 
 user can login, logout,signup and change password
 user can login as doctor and append prescription which can viewed by anyone
+
+
+extra:
+ALTER TABLE doctorsync_db.doctor 
+    MODIFY COLUMN Specialty ENUM(
+        'Family Medicine',
+        'Internal Medicine',
+        'Pediatrics',
+        'Cardiology',
+        'Dermatology',
+        'Neurology',
+        'Orthopedics',
+        'Psychiatry',
+        'Obstetrics',
+        'ENT',
+        'Ophthalmology',
+        'Urology',
+        'Oncology',
+        'Endocrinology',
+        'Pulmonology',
+        'Gastroenterology',
+        'Nephrology',
+        'Rheumatology',
+        'Other'
+    ) NOT NULL,
+    ADD COLUMN other_specialty VARCHAR(100);
+
+
+
+
+
+
+#faker.js
+npm install faker @faker-js/faker mysql2
+
+# changes in package.json
+ "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "seed": "node scripts/generateDummyData.js"
+  },
+
+
+
+#delete all users
+SET SQL_SAFE_UPDATES = 0;
+DELETE FROM doctorsync_db.USER;
+SET SQL_SAFE_UPDATES = 1;
