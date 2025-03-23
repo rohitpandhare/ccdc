@@ -50,20 +50,15 @@ app.use(
   })
 );
 
-// Middleware to check if user is logged in
-import { checkRole } from require('./middleware/auth');
-app.use(checkRole);
-
 // Import middleware and routes
 const authlinks = require('./routes/auth'); 
 app.use('/auth', authlinks);
 
-// Home page route
+// Application Routes with correct paths
 app.get('/', (req, res) => {
   res.render('layouts/index');
 });
 
-// login and signup routes
 app.get('/login', (req, res) => {
   res.render('auth/login');
 });
@@ -72,20 +67,7 @@ app.get('/signup', (req, res) => {
   res.render('auth/signup'); 
 });
 
-// Logout Route
-app.get('/logout', (req, res) => {
-  res.render('auth/logout');
-});
-
-//reset password 
-app.get('/reset', (req, res) => {
-  res.render('auth/reset_pass');
-});
-
-
-
-//Home page routes
-// Prescription route
+// GET route for prescription form
 app.get('/pres', (req, res) => {
   res.render('dataRelated/pres');
 });
@@ -93,97 +75,70 @@ app.get('/pres', (req, res) => {
 // POST route to handle prescription lookup
 app.post('/pres', async (req, res) => {
   try {
-    const refId = req.body.refId;
-    
-    // Query to get prescription details
-    const [prescriptions] = await conPool.promise().query(`
-      SELECT 
-      p.PrescriptionID,
+      const refId = req.body.refId;
+      
+      // Query to get prescription details
+      const [prescriptions] = await conPool.promise().query(`
+          SELECT 
+              p.PrescriptionID,
               p.DateIssued,
               p.DiagnosisNotes,
               p.Medicines,
               p.Status,
               p.GlobalReferenceID,
               d.Name as DoctorName
-              FROM PRESCRIPTION p
-              JOIN DOCTOR d ON p.DoctorID = d.DoctorID
-              WHERE p.GlobalReferenceID = ?
-              `, [refId]);
-              
-              if (prescriptions.length === 0) {
+          FROM PRESCRIPTION p
+          JOIN DOCTOR d ON p.DoctorID = d.DoctorID
+          WHERE p.GlobalReferenceID = ?
+      `, [refId]);
+
+      if (prescriptions.length === 0) {
           return res.render('dataRelated/pres', { 
               error: 'No prescription found with this reference ID' 
-            });
-          }
-          
+          });
+      }
+
       res.render('dataRelated/pres', { prescription: prescriptions[0] });
-      
-    } catch (err) {
+
+  } catch (err) {
       console.error('Error fetching prescription:', err);
       res.render('dataRelated/pres', { 
-        error: 'Error retrieving prescription details' 
+          error: 'Error retrieving prescription details' 
       });
-    }
-  });
-
-  // GET route for doctors listing
-app.get('/doctors', async (req, res) => {
-  try {
-    // Query to get all doctors with their details
-    const [doctors] = await conPool.promise().query(`
-      SELECT 
-      DoctorID,
-              Name,
-              Specialty,
-              Phone,
-              LicenseNumber,
-              Qualifications
-          FROM DOCTOR
-          ORDER BY Name
-      `);
-      
-      res.render('dataRelated/doctors', { doctors });
-    } catch (err) {
-      console.error('Error fetching doctors:', err);
-      res.render('dataRelated/doctors', { 
-        doctors: [],
-        error: 'Error retrieving doctors list'
-      });
-    }
-  });
-  
-// Add search functionality
-app.get('/doctors/search', async (req, res) => {
-  try {
-    const searchTerm = req.query.search || '';
-      const [doctors] = await conPool.promise().query(`
-          SELECT 
-              DoctorID,
-              Name,
-              Specialty,
-              Phone,
-              LicenseNumber,
-              Qualifications
-              FROM DOCTOR 
-              WHERE 
-              Name LIKE ? 
-              OR Specialty LIKE ?
-      `, [`%${searchTerm}%`, `%${searchTerm}%`]);
-      
-      res.render('dataRelated/doctors', { doctors });
-  } catch (err) {
-    console.error('Error searching doctors:', err);
-    res.render('dataRelated/doctors', { 
-      doctors: [],
-      error: 'Error searching doctors'
-    });
   }
 });
 
-// Protected routes
-app.get('/patient', checkRole(['patient']), (req, res) => {
-  res.render('users/patient', { user: req.session.user });
+app.get('/reset', (req, res) => {
+  res.render('auth/reset_pass');
 });
+
+// Logout Route
+app.get('/auth/logout', (req, res) => {
+  req.session.destroy((err) => {
+    if (err) {
+      return res.status(500).json({ message: 'Failed to log out' });
+    }
+    res.status(200).json({ message: 'Successfully logged out' });
+  });
+});
+
+// Role check middleware
+const checkRole = (roles = []) => {
+  return (req, res, next) => {
+    if (!req.session.loggedIn) {
+      return res.redirect('/login');
+    }
+    
+    if (!roles.includes(req.session.user.Role.toLowerCase())) {
+      return res.status(403).render('checks/error', {
+        message: 'Access Denied'
+      });
+    }
+    
+    next();
+  };
+};
+
 // Protected routes with improved role checking
 app.get('/admin', checkRole(['admin']), async (req, res) => {
   try {
@@ -248,6 +203,7 @@ app.post('/admin/delete-patient/:id', checkRole(['admin']), async (req, res) => 
   }
 });
 
+
 // In index.js
 app.get('/doctor', checkRole(['doctor']), async (req, res) => {
   try {
@@ -293,6 +249,65 @@ app.get('/doctor', checkRole(['doctor']), async (req, res) => {
   }
 });
 
+
+app.get('/patient', checkRole(['patient']), (req, res) => {
+  res.render('users/patient', { user: req.session.user });
+});
+
+
+// GET route for doctors listing
+app.get('/doctors', async (req, res) => {
+  try {
+      // Query to get all doctors with their details
+      const [doctors] = await conPool.promise().query(`
+          SELECT 
+              DoctorID,
+              Name,
+              Specialty,
+              Phone,
+              LicenseNumber,
+              Qualifications
+          FROM DOCTOR
+          ORDER BY Name
+      `);
+      
+      res.render('dataRelated/doctors', { doctors });
+  } catch (err) {
+      console.error('Error fetching doctors:', err);
+      res.render('dataRelated/doctors', { 
+          doctors: [],
+          error: 'Error retrieving doctors list'
+      });
+  }
+});
+
+// Add search functionality
+app.get('/doctors/search', async (req, res) => {
+  try {
+      const searchTerm = req.query.search || '';
+      const [doctors] = await conPool.promise().query(`
+          SELECT 
+              DoctorID,
+              Name,
+              Specialty,
+              Phone,
+              LicenseNumber,
+              Qualifications
+          FROM DOCTOR 
+          WHERE 
+              Name LIKE ? 
+              OR Specialty LIKE ?
+      `, [`%${searchTerm}%`, `%${searchTerm}%`]);
+      
+      res.render('dataRelated/doctors', { doctors });
+  } catch (err) {
+      console.error('Error searching doctors:', err);
+      res.render('dataRelated/doctors', { 
+          doctors: [],
+          error: 'Error searching doctors'
+      });
+  }
+});
 
 // Error handling middleware
 app.use((err, req, res, next) => {
