@@ -24,8 +24,12 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Set views and static files
-app.use(express.static(path.join(__dirname, 'views')));
-app.set("view engine", "ejs");
+// View engine setup - Add these lines BEFORE any routes
+app.set('view engine', 'ejs');  // Set EJS as the view engine
+app.set('views', path.join(__dirname, 'views')); // Set views directory
+
+// Static files
+app.use(express.static(path.join(__dirname, 'public')));
 
 // CORS configuration
 var corsOptions = {
@@ -200,6 +204,42 @@ app.post('/admin/delete-patient/:id', checkRole(['admin']), async (req, res) => 
   } catch (err) {
       console.error('Error deleting patient:', err);
       res.status(500).json({ success: false });
+  }
+});
+
+
+// Existing imports...
+const doctorRoutes = require('./routes/doctor');
+
+// After your existing middleware setup...
+app.use('/doctor/api', doctorRoutes);
+
+// Add this route to check if patient exists
+app.get('/doctor/api/validate-patient/:id', async (req, res) => {
+  try {
+      const [patient] = await conPool.promise().query(
+          'SELECT PatientID, Name FROM patient WHERE PatientID = ?',
+          [req.params.id]
+      );
+
+      if (patient && patient.length > 0) {
+          res.json({
+              success: true,
+              data: patient[0],
+              message: 'Patient found'
+          });
+      } else {
+          res.json({
+              success: false,
+              message: 'Patient not found'
+          });
+      }
+  } catch (error) {
+      console.error('Error validating patient:', error);
+      res.status(500).json({
+          success: false,
+          message: 'Error validating patient'
+      });
   }
 });
 

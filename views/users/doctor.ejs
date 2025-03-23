@@ -10,27 +10,27 @@
 
 <body class="bg-gray-100 min-h-screen flex">
     <!-- Sidebar -->
-    <div class="w-64 bg-white shadow-md">
+    <div class="w-64 bg-white shadow-md min-h-screen">
         <div class="p-6 border-b">
             <h2 class="text-2xl font-bold text-gray-800">Doctor Portal</h2>
         </div>
         <nav class="p-4">
             <ul class="space-y-2">
                 <li>
-                    <a href="#" class="flex items-center text-gray-700 hover:bg-blue-50 p-2 rounded">
-                        <i data-feather="calendar" class="mr-3"></i>
+                    <a href="#" class="flex items-center text-gray-700 hover:bg-blue-50 p-2 rounded transition duration-150">
+                        <i data-feather="calendar" class="mr-3 h-5 w-5"></i>
                         My Appointments
                     </a>
                 </li>
                 <li>
-                    <a href="#" class="flex items-center text-gray-700 hover:bg-blue-50 p-2 rounded">
-                        <i data-feather="file-text" class="mr-3"></i>
+                    <a href="#" class="flex items-center text-gray-700 hover:bg-blue-50 p-2 rounded transition duration-150">
+                        <i data-feather="file-text" class="mr-3 h-5 w-5"></i>
                         Patient Records
                     </a>
                 </li>
                 <li>
-                    <a href="#" class="flex items-center text-gray-700 hover:bg-blue-50 p-2 rounded">
-                        <i data-feather="message-square" class="mr-3"></i>
+                    <a href="#" class="flex items-center text-gray-700 hover:bg-blue-50 p-2 rounded transition duration-150">
+                        <i data-feather="message-square" class="mr-3 h-5 w-5"></i>
                         Consultations
                     </a>
                 </li>
@@ -39,7 +39,7 @@
     </div>
 
     <!-- Main Content -->
-    <div class="flex-1 p-10">
+    <div class="flex-1 p-10 overflow-y-auto">
         <!-- Header -->
         <header class="flex justify-between items-center mb-10">
             <h1 class="text-3xl font-bold text-gray-800">Dashboard</h1>
@@ -47,7 +47,7 @@
                 <span class="mr-4 text-gray-600">
                     Dr. <%= user ? user.Username : 'Guest' %>
                 </span>
-                <a href="/auth/logout" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
+                <a href="/auth/logout" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition duration-150">
                     Logout
                 </a>
             </div>
@@ -59,7 +59,7 @@
             <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">   
                 <div class="flex items-center justify-between mb-4">
                     <h3 class="text-xl font-semibold text-gray-800">Total Patients</h3>
-                    <i data-feather="users" class="text-blue-500"></i>
+                    <i data-feather="users" class="text-blue-500 h-6 w-6"></i>
                 </div>
                 <p class="text-3xl font-bold text-blue-600">
                     <%= (stats && stats.totalPatients) ? stats.totalPatients : 0 %>
@@ -70,7 +70,7 @@
             <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">   
                 <div class="flex items-center justify-between mb-4">
                     <h3 class="text-xl font-semibold text-gray-800">Upcoming Appointments</h3>
-                    <i data-feather="calendar" class="text-green-500"></i>
+                    <i data-feather="calendar" class="text-green-500 h-6 w-6"></i>
                 </div>
                 <p class="text-3xl font-bold text-green-600">
                     <%= (stats && stats.upcomingAppointments) ? stats.upcomingAppointments : 0 %>
@@ -78,48 +78,259 @@
             </div>
         </div>
 
-        <!-- Recent Appointments Section -->
-        <% if (stats && stats.recentAppointments && stats.recentAppointments.length > 0) { %>
-            <div class="bg-white p-6 rounded-lg shadow-md mt-6">
-                <div class="flex items-center justify-between mb-6">
-                    <h3 class="text-xl font-semibold text-gray-800">Recent Appointments</h3>
-                    <i data-feather="clock" class="text-gray-500"></i>
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="min-w-full">
-                        <thead>
-                            <tr class="bg-gray-50">
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patient</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
-                            <% stats.recentAppointments.forEach(appointment => { %>
-                                <tr class="hover:bg-gray-50">
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                        <%= appointment.patient %>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        <%= new Date(appointment.date).toLocaleDateString() %>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                            <%= appointment.status === 'Completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800' %>">
-                                            <%= appointment.status %>
-                                        </span>
-                                    </td>
-                                </tr>
-                            <% }); %>
-                        </tbody>
-                    </table>
-                </div>
+        <!-- Patients Section -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-xl font-semibold text-gray-800 mb-6">My Patients</h2>
+            <div id="patientsList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- Patients will be populated here -->
             </div>
-        <% } %>
+        </div>
+
+        <!-- Prescription Form -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-semibold text-gray-800 mb-6">Create Prescription</h2>
+            <form id="prescriptionForm" class="space-y-6">
+                <!-- Patient ID Input -->
+                
+                <div class="space-y-2">
+                    <label for="patientID" class="block text-sm font-medium text-gray-700">Patient ID</label>
+                    <input 
+                        type="number" 
+                        name="PatientID" 
+                        id="patientID" 
+                        required 
+                        class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="Enter Patient ID"
+                    >
+                    <div id="patientValidationMessage" class="hidden text-sm mt-1"></div>
+                    <div id="patientInfoDisplay" class="hidden"></div>
+                </div>
+
+
+                <!-- Diagnosis Notes -->
+                <div class="space-y-2">
+                    <label for="diagnosisNotes" class="block text-sm font-medium text-gray-700">Diagnosis Notes</label>
+                    <textarea 
+                        name="DiagnosisNotes" 
+                        id="diagnosisNotes"
+                        required
+                        class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[100px]"
+                        placeholder="Enter diagnosis notes..."
+                    ></textarea>
+                </div>
+
+                <!-- Medicines Section -->
+                <div class="space-y-4">
+                    <label class="block text-sm font-medium text-gray-700">Medicines</label>
+                    <div id="medicineInputs" class="space-y-4">
+                        <div class="medicine-entry grid grid-cols-2 gap-4">
+                            <input 
+                                type="text" 
+                                name="Medicines[]" 
+                                placeholder="Medicine name"
+                                required
+                                class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            >
+                            <input 
+                                type="text" 
+                                name="Dosage[]" 
+                                placeholder="Dosage"
+                                required
+                                class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            >
+                        </div>
+                    </div>
+                    <button 
+                        type="button"
+                        onclick="addMedicineFields()"
+                        class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    >
+                        <i data-feather="plus" class="h-4 w-4 mr-2"></i>
+                        Add Medicine
+                    </button>
+                </div>
+
+                <!-- Submit Button -->
+                <button 
+                    type="submit"
+                    class="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                    Create Prescription
+                </button>
+            </form>
+        </div>
     </div>
 
     <script>
         feather.replace();
+
+        // Add Medicine Fields
+        function addMedicineFields() {
+            const medicineInputs = document.getElementById('medicineInputs');
+            const newEntry = document.createElement('div');
+            newEntry.className = 'medicine-entry grid grid-cols-2 gap-4';
+            newEntry.innerHTML = `
+                <input 
+                    type="text" 
+                    name="Medicines[]" 
+                    placeholder="Medicine name"
+                    required
+                    class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                <input 
+                    type="text" 
+                    name="Dosage[]" 
+                    placeholder="Dosage"
+                    required
+                    class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+            `;
+            medicineInputs.appendChild(newEntry);
+        }
+
+        // Fetch and Display Patients
+        async function fetchPatients() {
+            try {
+                const response = await fetch('/doctor/api/patients');
+                const data = await response.json();
+                
+                const patientsList = document.getElementById('patientsList');
+                
+                if (data.success && data.data.length > 0) {
+                    patientsList.innerHTML = data.data.map(patient => `
+                        <div class="bg-white p-4 rounded-lg shadow border border-gray-200 hover:shadow-md transition-shadow">
+                            <h3 class="font-semibold text-gray-800">${patient.Name}</h3>
+                            <p class="text-sm text-gray-600">ID: ${patient.PatientID}</p>
+                            <p class="text-sm text-gray-600">Blood Group: ${patient.BloodGroup}</p>
+                            <p class="text-sm text-gray-600">Phone: ${patient.Phone}</p>
+                        </div>
+                    `).join('');
+                } else {
+                    patientsList.innerHTML = '<p class="text-gray-500">No patients found</p>';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                patientsList.innerHTML = '<p class="text-red-500">Error loading patients</p>';
+            }
+        }
+
+        // Replace your existing patient validation code with this:
+    const patientIDInput = document.getElementById('patientID');
+    const validationMessage = document.getElementById('patientValidationMessage');
+    const patientInfoDisplay = document.getElementById('patientInfoDisplay');
+
+async function validatePatient(patientID) {
+    try {
+        // Show loading state
+        validationMessage.textContent = 'Checking...';
+        validationMessage.className = 'text-sm mt-1 text-gray-600';
+        validationMessage.classList.remove('hidden');
+
+        const response = await fetch(`/doctor/api/validate-patient/${patientID}`);
+        const result = await response.json();
+
+        if (result.success) {
+            // Patient found - show success message and patient info
+            validationMessage.textContent = 'Patient found';
+            validationMessage.className = 'text-sm mt-1 text-green-600';
+            
+            // Display patient info if you want to show additional details
+            if (patientInfoDisplay) {
+                patientInfoDisplay.innerHTML = `
+                    <div class="mt-2 p-2 bg-green-50 border border-green-200 rounded">
+                        <p class="text-sm text-green-800">Patient ID: ${result.data.PatientID}</p>
+                        <p class="text-sm text-green-800">Name: ${result.data.Name}</p>
+                    </div>
+                `;
+                patientInfoDisplay.classList.remove('hidden');
+            }
+        } else {
+            // Patient not found
+            validationMessage.textContent = 'Patient not found';
+            validationMessage.className = 'text-sm mt-1 text-red-600';
+            if (patientInfoDisplay) {
+                patientInfoDisplay.innerHTML = '';
+                patientInfoDisplay.classList.add('hidden');
+            }
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        validationMessage.textContent = 'Error checking patient ID';
+        validationMessage.className = 'text-sm mt-1 text-red-600';
+    }
+}
+
+// Add debounce to prevent too many requests
+let debounceTimer;
+patientIDInput.addEventListener('input', (e) => {
+    clearTimeout(debounceTimer);
+    const patientID = e.target.value.trim();
+    
+    if (patientID) {
+        debounceTimer = setTimeout(() => validatePatient(patientID), 500);
+    } else {
+        validationMessage.classList.add('hidden');
+        if (patientInfoDisplay) {
+            patientInfoDisplay.innerHTML = '';
+            patientInfoDisplay.classList.add('hidden');
+        }
+    }
+});
+
+        // Update your form submission handler
+document.getElementById('prescriptionForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    // Validate patient ID first
+    const patientID = document.getElementById('patientID').value;
+    try {
+        const validationResponse = await fetch(`/doctor/api/validate-patient/${patientID}`);
+        const validationResult = await validationResponse.json();
+        
+        if (!validationResult.success) {
+            alert('Please enter a valid patient ID');
+            return;
+        }
+
+        // If patient is valid, proceed with form submission
+        const formData = {
+            PatientID: patientID,
+            DiagnosisNotes: document.getElementById('diagnosisNotes').value,
+            Medicines: Array.from(document.getElementsByName('Medicines[]')).map((input, index) => ({
+                name: input.value,
+                dosage: document.getElementsByName('Dosage[]')[index].value
+            }))
+        };
+
+        const response = await fetch('/doctor/api/prescription/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(formData)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            alert('Prescription created successfully!');
+            e.target.reset();
+            if (patientInfoDisplay) {
+                patientInfoDisplay.innerHTML = '';
+                patientInfoDisplay.classList.add('hidden');
+            }
+        } else {
+            alert(result.message || 'Error creating prescription');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error processing the request');
+    }
+});
+
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchPatients();
+        });
     </script>
 </body>
 </html>

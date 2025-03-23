@@ -113,13 +113,13 @@ function doLogin(req, res) {
 
     conPool.query(query, [Username, hashedPassword, Role], (err, results) => {
         if (err) {
-            return res.status(500).render('login', {
+            return res.status(500).render('auth/login', {
                 error: "Database error occurred"
             });
         }
 
         if (results.length === 0) { // if no user found
-            return res.status(401).render('login', {
+            return res.status(401).render('auth/login', {
                 error: "Invalid credentials"
             });
         }

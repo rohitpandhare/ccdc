@@ -1,32 +1,19 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Error</title>
-    <style>
-        .error-container {
-            text-align: center;
-            margin-top: 50px;
-        }
-        .error-message {
-            color: #e74c3c;
-            font-size: 1.2em;
-        }
-        .back-link {
-            margin-top: 20px;
-            display: inline-block;
-            padding: 10px 20px;
-            background-color: #3498db;
-            color: white;
-            text-decoration: none;
-            border-radius: 5px;
-        }
-    </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Error - DocSync</title>
 </head>
 <body>
-    <div class="error-container">
+    <div class="container">
         <h1>Error</h1>
-        <p class="error-message"><%= message %></p>
-        <a href="/" class="back-link">Back to Home</a>
+        <% if (locals.message) { %>
+            <p><%= message %></p>
+        <% } else { %>
+            <p>An unknown error occurred</p>
+        <% } %>
+        <a href="/">Return to Home</a>
     </div>
 </body>
 </html>
